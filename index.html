@@ -4,6 +4,12 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Михаил Рачков — юрист</title>
+<meta property="og:type" content="website">
+<meta property="og:title" content="Михаил Рачков — юрист">
+<meta property="og:description" content="Юридическое сопровождение бизнеса, договорная работа и судебная защита">
+<meta property="og:url" content="https://rachkov.me">
+<meta property="og:image" content="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='630'><rect fill='%23f5f5f7' width='100%' height='100%'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='Inter,Arial' font-size='64' fill='%231d1d1f'>Mikhail Rachkov</text></svg>">
+<meta name="twitter:card" content="summary_large_image">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{--text:#1d1d1f;--sub:#6e6e73;--accent:#0a84ff;--bg:#f5f5f7}
@@ -12,6 +18,7 @@ body{font-family:"Inter",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-seri
 .container{max-width:900px;margin:0 auto;padding:60px 24px 80px}
 .card{background:#fff;border-radius:28px;padding:60px 50px;box-shadow:0 30px 60px rgba(0,0,0,.08)}
 header{text-align:center;margin-bottom:60px}
+.avatar{width:160px;height:160px;border-radius:50%;object-fit:cover;margin-bottom:24px;box-shadow:0 10px 25px rgba(0,0,0,.15)}
 h1{font-weight:600;font-size:42px;letter-spacing:-.02em}
 .subtitle{margin-top:8px;font-size:20px;color:var(--sub)}
 .email{display:inline-block;margin-top:18px;color:var(--accent);text-decoration:none;font-weight:500}
@@ -21,7 +28,7 @@ p{margin-bottom:14px;color:var(--sub)}
 ul{padding-left:18px;color:var(--sub)}
 li{margin-bottom:8px;color:var(--sub)}
 li{margin-bottom:8px}
-.photo{width:140px;height:140px;border-radius:50%;background:#ddd center/cover no-repeat;margin:0 auto 26px}
+
 footer{margin-top:70px;text-align:center;font-size:14px;color:var(--sub)}
 .lang{position:absolute;top:18px;right:20px;font-size:14px}
 .lang button{background:none;border:none;color:var(--sub);cursor:pointer;margin-left:8px}
@@ -34,7 +41,8 @@ footer{margin-top:70px;text-align:center;font-size:14px;color:var(--sub)}
 <div class="container">
 <div class="card">
 <header>
-<div class="photo" style="background-image:url('photo.jpg')"></div>
+<img src="photo.jpg" alt="Михаил Рачков" class="avatar">
+
 <h1 data-lang="ru">Михаил Рачков</h1>
 <h1 data-lang="en">Mikhail Rachkov</h1>
 <div class="subtitle" data-lang="ru">Юрист</div>
