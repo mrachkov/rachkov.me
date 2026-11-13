@@ -32,11 +32,11 @@
     <div class="form-grid">
       <div class="field">
         <label for="debt">Сумма задолженности, ₽</label>
-        <input type="number" id="debt" step="0.01" min="0" value="500000" placeholder="Например, 500000">
+        <input type="number" id="debt" step="0.01" min="0" placeholder="0">
       </div>
       <div class="field">
         <label for="startDate">Начало периода просрочки</label>
-        <input type="date" id="startDate" value="2026-01-15">
+        <input type="date" id="startDate">
       </div>
       <div class="field">
         <label for="endDate">Конец периода просрочки</label>
@@ -110,11 +110,12 @@
 
 <script src="rates.js"></script>
 <script>
-document.getElementById("endDate").value = todayISO();
 document.getElementById("year").textContent = new Date().getFullYear();
 document.getElementById("todayBtn").onclick = () => {
   document.getElementById("endDate").value = todayISO();
-  calculate395();
+  if (document.getElementById("startDate").value && document.getElementById("debt").value) {
+    calculate395();
+  }
 };
 
 let lastReportText = "";
@@ -128,8 +129,8 @@ function addEventRow(type) {
       <option value="payment" ${type === "payment" ? "selected" : ""}>Частичная оплата</option>
       <option value="increase" ${type === "increase" ? "selected" : ""}>Увеличение долга</option>
     </select>
-    <input type="date" class="ev-date" value="${todayISO()}">
-    <input type="number" class="ev-amount" step="0.01" min="0" placeholder="Сумма, ₽">
+    <input type="date" class="ev-date">
+    <input type="number" class="ev-amount" step="0.01" min="0" placeholder="0">
     <button type="button" class="btn-icon-del" title="Удалить" onclick="this.parentElement.remove()">×</button>
   `;
   container.appendChild(row);
@@ -141,7 +142,17 @@ function calculate395() {
   const endStr = document.getElementById("endDate").value;
   const useMoratorium = document.getElementById("moratorium").checked;
 
-  if (!startStr || !endStr || startStr > endStr) {
+  if (!initialDebt || initialDebt <= 0) {
+    alert("Укажите сумму задолженности.");
+    return;
+  }
+
+  if (!startStr || !endStr) {
+    alert("Укажите даты начала и окончания периода просрочки.");
+    return;
+  }
+
+  if (startStr > endStr) {
     alert("Проверьте даты: дата начала просрочки не может быть позже даты окончания.");
     return;
   }
@@ -280,8 +291,6 @@ function copyReport() {
     setTimeout(() => (btn.textContent = orig), 2000);
   });
 }
-
-calculate395();
 </script>
 </body>
 </html>
