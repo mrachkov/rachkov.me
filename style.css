@@ -504,3 +504,10 @@ footer {
     padding-left: 10px !important;
   }
 }
+/* Выравнивание текста по ширине в карточке */
+.card section p,
+.card section li {
+  text-align: justify;
+  -webkit-hyphens: auto;
+  hyphens: auto;
+}
