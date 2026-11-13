@@ -439,23 +439,41 @@ footer {
   }
 }
 /* Двухстрочное меню */
+.topbar {
+  align-items: flex-start;
+}
+
 .nav-grouped {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .nav-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 16px;
+  gap: 6px 14px;
+}
+
+.nav-row a {
+  text-decoration: none;
+  color: inherit;
+  opacity: 0.7;
+  font-size: 0.95rem;
+  transition: opacity 0.2s;
+}
+
+.nav-row a:hover,
+.nav-row a.active {
+  opacity: 1;
+  font-weight: 500;
 }
 
 .nav-label {
-  font-size: 0.85em;
+  font-size: 0.75rem;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  opacity: 0.6;
+  letter-spacing: 0.05em;
+  opacity: 0.45;
   user-select: none;
 }
