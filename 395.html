@@ -63,7 +63,7 @@
 
     <div style="display:flex; gap:12px; flex-wrap:wrap;">
       <button type="button" class="btn btn-primary" onclick="calculate395()">Рассчитать проценты</button>
-      <button type="button" class="btn btn-secondary" id="copyBtn" onclick="copyReport()" style="display:none;">Скопировать расчёт для иска</button>
+      <button type="button" class="btn btn-secondary" id="copyBtn" onclick="copyReport()" style="display:none;">Скопировать таблицу для иска</button>
     </div>
 
     <div id="resultBlock" style="display:none;">
@@ -119,6 +119,7 @@ document.getElementById("todayBtn").onclick = () => {
 };
 
 let lastReportText = "";
+let lastReportHtml = "";
 
 function addEventRow(type) {
   const container = document.getElementById("eventsList");
@@ -157,7 +158,6 @@ function calculate395() {
     return;
   }
 
-  // Сбор событий (частичных оплат и увеличений долга)
   const events = [];
   document.querySelectorAll(".event-row").forEach(row => {
     const type = row.querySelector(".ev-type").value;
@@ -168,32 +168,25 @@ function calculate395() {
     }
   });
 
-  // Собираем все граничные даты разбиения периодов
   const boundaries = new Set([startStr, addDays(endStr, 1)]);
 
-  // Границы изменения ключевой ставки ЦБ
   for (const r of CBR_KEY_RATES) {
     if (r.date > startStr && r.date <= endStr) {
       boundaries.add(r.date);
     }
   }
 
-  // Границы календарных лет (для корректного деления на 365 / 366 дней)
   const startYear = Number(startStr.slice(0, 4));
   const endYear = Number(endStr.slice(0, 4));
   for (let y = startYear + 1; y <= endYear; y++) {
     boundaries.add(`${y}-01-01`);
   }
 
-  // Границы моратория 2022
   if (useMoratorium) {
     if ("2022-04-01" > startStr && "2022-04-01" <= endStr) boundaries.add("2022-04-01");
     if ("2022-10-02" > startStr && "2022-10-02" <= endStr) boundaries.add("2022-10-02");
   }
 
-  // Границы событий
-  // Частичная оплата: в день оплаты проценты ещё начисляются на старый долг, снижение — со следующего дня
-  // Увеличение долга: с указанной даты начала просрочки по новому траншу
   for (const ev of events) {
     const effDate = ev.type === "payment" ? addDays(ev.date, 1) : ev.date;
     if (effDate > startStr && effDate <= endStr) {
@@ -208,13 +201,13 @@ function calculate395() {
   let totalInterest = 0;
   let totalDays = 0;
   let reportLines = [];
+  let htmlRows = [];
 
   for (let i = 0; i < sortedPoints.length - 1; i++) {
     const segStart = sortedPoints[i];
     const segEnd = addDays(sortedPoints[i + 1], -1);
     if (segStart > segEnd) continue;
 
-    // Считаем актуальный долг на дату segStart
     let currentDebt = initialDebt;
     for (const ev of events) {
       const effDate = ev.type === "payment" ? addDays(ev.date, 1) : ev.date;
@@ -234,27 +227,38 @@ function calculate395() {
     totalInterest += interest;
     totalDays += days;
 
+    const rateStr = isMoratoriumSeg ? "0,00" : rate.toFixed(2).replace(".", ",");
     const formulaStr = isMoratoriumSeg
       ? "Мораторий (0%)"
-      : `${formatMoney(currentDebt)} × ${days} / ${diy} × ${rate.toFixed(2).replace(".", ",")}%`;
+      : `${formatMoney(currentDebt)} × ${days} / ${diy} × ${rateStr}%`;
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td class="num">${formatMoney(currentDebt)}</td>
       <td>${formatRU(segStart)} – ${formatRU(segEnd)}</td>
       <td class="num">${days}</td>
-      <td class="num">${isMoratoriumSeg ? "0,00" : rate.toFixed(2).replace(".", ",")}</td>
+      <td class="num">${rateStr}</td>
       <td>${formulaStr}</td>
       <td class="num"><strong>${formatMoney(interest)}</strong></td>
     `;
     tbody.appendChild(tr);
 
     reportLines.push(
-      `• с ${formatRU(segStart)} по ${formatRU(segEnd)} (${days} дн.): долг ${formatMoney(currentDebt)} руб., ставка ${isMoratoriumSeg ? "0% (мораторий)" : rate.toFixed(2).replace(".", ",") + "%"} — ${formatMoney(interest)} руб.`
+      `${formatMoney(currentDebt)}\t${formatRU(segStart)} – ${formatRU(segEnd)}\t${days}\t${rateStr}%\t${formulaStr}\t${formatMoney(interest)}`
     );
+
+    htmlRows.push(`
+      <tr>
+        <td style="border:1px solid #000; padding:6px 8px; text-align:right;">${formatMoney(currentDebt)}</td>
+        <td style="border:1px solid #000; padding:6px 8px; text-align:center;">${formatRU(segStart)} – ${formatRU(segEnd)}</td>
+        <td style="border:1px solid #000; padding:6px 8px; text-align:right;">${days}</td>
+        <td style="border:1px solid #000; padding:6px 8px; text-align:right;">${rateStr}%</td>
+        <td style="border:1px solid #000; padding:6px 8px;">${formulaStr}</td>
+        <td style="border:1px solid #000; padding:6px 8px; text-align:right;"><strong>${formatMoney(interest)}</strong></td>
+      </tr>
+    `);
   }
 
-  // Итоговый остаток долга на конец расчётного периода
   let finalDebt = initialDebt;
   for (const ev of events) {
     if (ev.date <= endStr) {
@@ -275,21 +279,72 @@ function calculate395() {
     `РАСЧЁТ ПРОЦЕНТОВ ЗА ПОЛЬЗОВАНИЕ ЧУЖИМИ ДЕНЕЖНЫМИ СРЕДСТВАМИ (СТ. 395 ГК РФ)`,
     `Период просрочки: с ${formatRU(startStr)} по ${formatRU(endStr)} (${totalDays} дн.)`,
     ``,
+    `Задолженность, ₽\tПериод просрочки\tДней\tСтавка\tФормула\tПроценты, ₽`,
     ...reportLines,
     ``,
     `Итого сумма процентов по ст. 395 ГК РФ: ${formatMoney(totalInterest)} руб.`,
     `Остаток основного долга: ${formatMoney(finalDebt)} руб.`,
     `Общая сумма задолженности: ${formatMoney(finalDebt + totalInterest)} руб.`
   ].join("\n");
+
+  lastReportHtml = `
+    <div style="font-family: 'Times New Roman', serif; font-size: 12pt; color: #000;">
+      <p style="font-weight: bold; margin-bottom: 4px;">РАСЧЁТ ПРОЦЕНТОВ ЗА ПОЛЬЗОВАНИЕ ЧУЖИМИ ДЕНЕЖНЫМИ СРЕДСТВАМИ (СТ. 395 ГК РФ)</p>
+      <p style="margin-top: 0; margin-bottom: 10px;">Период просрочки: с ${formatRU(startStr)} по ${formatRU(endStr)} (${totalDays} дн.)</p>
+      <table style="border-collapse: collapse; width: 100%; font-size: 11pt;">
+        <thead>
+          <tr style="background-color: #f2f2f2;">
+            <th style="border:1px solid #000; padding:6px 8px;">Задолженность, ₽</th>
+            <th style="border:1px solid #000; padding:6px 8px;">Период просрочки</th>
+            <th style="border:1px solid #000; padding:6px 8px;">Дней</th>
+            <th style="border:1px solid #000; padding:6px 8px;">Ставка</th>
+            <th style="border:1px solid #000; padding:6px 8px;">Формула</th>
+            <th style="border:1px solid #000; padding:6px 8px;">Проценты, ₽</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${htmlRows.join("")}
+          <tr>
+            <td colspan="2" style="border:1px solid #000; padding:6px 8px; font-weight:bold;">Итого:</td>
+            <td style="border:1px solid #000; padding:6px 8px; text-align:right; font-weight:bold;">${totalDays}</td>
+            <td colspan="2" style="border:1px solid #000; padding:6px 8px;"></td>
+            <td style="border:1px solid #000; padding:6px 8px; text-align:right; font-weight:bold;">${formatMoney(totalInterest)}</td>
+          </tr>
+        </tbody>
+      </table>
+      <p style="margin-top: 10px;">
+        <strong>Итого сумма процентов по ст. 395 ГК РФ:</strong> ${formatMoney(totalInterest)} руб.<br>
+        <strong>Остаток основного долга:</strong> ${formatMoney(finalDebt)} руб.<br>
+        <strong>Общая сумма задолженности:</strong> ${formatMoney(finalDebt + totalInterest)} руб.
+      </p>
+    </div>
+  `;
 }
 
-function copyReport() {
-  navigator.clipboard.writeText(lastReportText).then(() => {
-    const btn = document.getElementById("copyBtn");
-    const orig = btn.textContent;
+async function copyReport() {
+  const btn = document.getElementById("copyBtn");
+  const orig = btn.textContent;
+
+  try {
+    if (window.ClipboardItem) {
+      const htmlBlob = new Blob([lastReportHtml], { type: "text/html" });
+      const textBlob = new Blob([lastReportText], { type: "text/plain" });
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          "text/html": htmlBlob,
+          "text/plain": textBlob
+        })
+      ]);
+    } else {
+      await navigator.clipboard.writeText(lastReportText);
+    }
+    btn.textContent = "Таблица скопирована!";
+    setTimeout(() => (btn.textContent = orig), 2000);
+  } catch (e) {
+    await navigator.clipboard.writeText(lastReportText);
     btn.textContent = "Скопировано!";
     setTimeout(() => (btn.textContent = orig), 2000);
-  });
+  }
 }
 </script>
 </body>
