@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Калькулятор госпошлины в арбитражный суд — Михаил Рачков</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="topbar">
+  <nav class="nav-links">
+    <a href="index.html">Главная</a>
+    <a href="395.html">Ст. 395 ГК РФ</a>
+    <a href="penalty.html">Неустойка</a>
+    <a href="duty.html" class="active">Госпошлина АС</a>
+  </nav>
+</div>
+
+<div class="container">
+  <div class="card">
+    <div class="calc-header">
+      <h1>Госпошлина в арбитражный суд</h1>
+      <div class="subtitle">Расчёт по актуальной редакции ст. 333.21 Налогового кодекса РФ</div>
+    </div>
+
+    <div class="form-grid">
+      <div class="field">
+        <label for="payerType">Статус заявителя</label>
+        <select id="payerType" onchange="calculateDuty()">
+          <option value="org" selected>Организация (юридическое лицо)</option>
+          <option value="ind">Индивидуальный предприниматель / физлицо</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="claimType">Вид обращения в суд (ст. 333.21 НК РФ)</label>
+        <select id="claimType" onchange="toggleClaimFields(); calculateDuty();">
+          <option value="property" selected>Имущественный иск, подлежащий оценке (пп. 1 п. 1)</option>
+          <option value="order">Заявление о выдаче судебного приказа — 50% (пп. 2 п. 1)</option>
+          <option value="contract">Споры по договорам, признание сделок недействительными (пп. 3 п. 1)</option>
+          <option value="non_norm">Оспаривание ненормативных актов, решений/действий госорганов (пп. 5 п. 1)</option>
+          <option value="norm">Оспаривание нормативных правовых актов (пп. 4 п. 1)</option>
+          <option value="non_prop">Иные требования неимущественного характера (пп. 6 п. 1)</option>
+          <option value="bankruptcy">Заявление о признании должника банкротом (пп. 8 п. 1)</option>
+          <option value="interim">Заявление об обеспечении иска / замене / отмене (пп. 13 п. 1)</option>
+          <option value="arbitral">Выдача ИЛ на решение третейского суда / признание иностр. решения (пп. 11, 12 п. 1)</option>
+          <option value="appeal">Апелляционная жалоба (пп. 19 п. 1)</option>
+          <option value="cassation">Кассационная жалоба (пп. 20 п. 1)</option>
+          <option value="supreme">Надзорная жалоба / кассация в Верховный Суд РФ (пп. 21 п. 1)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-grid">
+      <div class="field" id="priceField">
+        <label for="claimPrice">Цена иска / размер требований, ₽</label>
+        <input type="number" id="claimPrice" step="0.01" min="0" value="1500000" oninput="calculateDuty()">
+      </div>
+
+      <div class="field">
+        <label for="paidBefore">Ранее уплаченная / зачитываемая госпошлина, ₽</label>
+        <input type="number" id="paidBefore" step="0.01" min="0" value="0" oninput="calculateDuty()">
+      </div>
+    </div>
+
+    <label class="checkbox-row" id="bankruptcySeparateWrap">
+      <input type="checkbox" id="bankruptcySeparate" onchange="calculateDuty()">
+      <span>Обособленный спор в деле о банкротстве — коэффициент 50% (пп. 10 п. 1 ст. 333.21 НК РФ)</span>
+    </label>
+
+    <label class="checkbox-row" id="addNonPropWrap">
+      <input type="checkbox" id="addNonProp" onchange="calculateDuty()">
+      <span>Добавить требование неимущественного характера (пп. 1 п. 1 ст. 333.22 НК РФ)</span>
+    </label>
+
+    <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top: 8px;">
+      <button type="button" class="btn btn-primary" onclick="calculateDuty()">Рассчитать госпошлину</button>
+      <button type="button" class="btn btn-secondary" id="copyBtn" onclick="copyReport()">Скопировать расчёт</button>
+    </div>
+
+    <div class="result-card">
+      <div class="result-grid">
+        <div class="result-item">
+          <span>Полный размер госпошлины</span>
+          <strong id="resBaseDuty">0,00 ₽</strong>
+        </div>
+        <div class="result-item highlight">
+          <span>К доплате в бюджет</span>
+          <strong id="resPayableDuty">0,00 ₽</strong>
+        </div>
+      </div>
+      <div class="note-box" id="resExplanation"></div>
+    </div>
+
+    <footer>© <span id="year"></span> rachkov.me</footer>
+  </div>
+</div>
+
+<script src="rates.js"></script>
+<script>
+document.getElementById("year").textContent = new Date().getFullYear();
+let lastReportText = "";
+
+function toggleClaimFields() {
+  const type = document.getElementById("claimType").value;
+  const needsPrice = (type === "property" || type === "order");
+  document.getElementById("priceField").style.display = needsPrice ? "flex" : "none";
+  document.getElementById("addNonPropWrap").style.display = (type === "property") ? "flex" : "none";
+  document.getElementById("bankruptcySeparateWrap").style.display =
+    (type === "property" || type === "contract" || type === "non_prop") ? "flex" : "none";
+}
+
+function calcPropertyScale(price) {
+  if (price <= 0) return { duty: 0, text: "Цена иска не указана." };
+  if (price <= 100000) {
+    return {
+      duty: 10000,
+      text: "При цене иска до 100 000 руб. — фиксированная пошлина 10 000 руб."
+    };
+  }
+  if (price <= 1000000) {
+    const over = price - 100000;
+    const duty = Math.round(10000 + over * 0.05);
+    return {
+      duty,
+      text: `10 000 руб. + 5% от суммы свыше 100 000 руб. (${formatMoney(over)} × 5% = ${formatMoney(over * 0.05)} руб.)`
+    };
+  }
+  if (price <= 10000000) {
+    const over = price - 1000000;
+    const duty = Math.round(55000 + over * 0.03);
+    return {
+      duty,
+      text: `55 000 руб. + 3% от суммы свыше 1 000 000 руб. (${formatMoney(over)} × 3% = ${formatMoney(over * 0.03)} руб.)`
+    };
+  }
+  if (price <= 50000000) {
+    const over = price - 10000000;
+    const duty = Math.round(325000 + over * 0.01);
+    return {
+      duty,
+      text: `325 000 руб. + 1% от суммы свыше 10 000 000 руб. (${formatMoney(over)} × 1% = ${formatMoney(over * 0.01)} руб.)`
+    };
+  }
+  const over = price - 50000000;
+  const raw = Math.round(725000 + over * 0.005);
+  const duty = Math.min(10000000, raw);
+  return {
+    duty,
+    text: raw > 10000000
+      ? "725 000 руб. + 0,5% от суммы свыше 50 000 000 руб., но не более предельного размера 10 000 000 руб."
+      : `725 000 руб. + 0,5% от суммы свыше 50 000 000 руб. (${formatMoney(over)} × 0,5% = ${formatMoney(over * 0.005)} руб.)`
+  };
+}
+
+function calculateDuty() {
+  const payer = document.getElementById("payerType").value;
+  const type = document.getElementById("claimType").value;
+  const price = parseFloat(document.getElementById("claimPrice").value) || 0;
+  const paidBefore = parseFloat(document.getElementById("paidBefore").value) || 0;
+  const isBankruptcySep = document.getElementById("bankruptcySeparate").checked;
+  const addNonProp = document.getElementById("addNonProp").checked;
+
+  let duty = 0;
+  let explanation = [];
+
+  if (type === "property") {
+    const res = calcPropertyScale(price);
+    duty = res.duty;
+    explanation.push(`Имущественное требование (цена иска ${formatMoney(price)} руб., пп. 1 п. 1 ст. 333.21 НК РФ): ${res.text}`);
+
+    if (addNonProp) {
+      const nonPropFee = payer === "org" ? 50000 : 15000;
+      duty += nonPropFee;
+      explanation.push(`Дополнительное неимущественное требование (пп. 6 п. 1 ст. 333.21, пп. 1 п. 1 ст. 333.22 НК РФ): +${formatMoney(nonPropFee)} руб.`);
+    }
+  } else if (type === "order") {
+    const res = calcPropertyScale(price);
+    duty = Math.round(res.duty * 0.5);
+    explanation.push(`Заявление о выдаче судебного приказа (пп. 2 п. 1 ст. 333.21 НК РФ): 50% от пошлины по имущественному иску (${formatMoney(res.duty)} × 50% = ${formatMoney(duty)} руб.).`);
+  } else if (type === "contract") {
+    duty = payer === "org" ? 50000 : 15000;
+    explanation.push(`Споры о заключении, изменении, расторжении договоров или признании сделок недействительными (пп. 3 п. 1 ст. 333.21 НК РФ): ${formatMoney(duty)} руб.`);
+  } else if (type === "non_norm") {
+    duty = payer === "org" ? 50000 : 10000;
+    explanation.push(`Оспаривание ненормативных правовых актов, решений и действий (бездействия) госорганов (пп. 5 п. 1 ст. 333.21 НК РФ): ${formatMoney(duty)} руб.`);
+  } else if (type === "norm") {
+    duty = payer === "org" ? 50000 : 10000;
+    explanation.push(`Оспаривание нормативных правовых актов (пп. 4 п. 1 ст. 333.21 НК РФ): ${formatMoney(duty)} руб.`);
+  } else if (type === "non_prop") {
+    duty = payer === "org" ? 50000 : 15000;
+    explanation.push(`Иные исковые заявления неимущественного характера (пп. 6 п. 1 ст. 333.21 НК РФ): ${formatMoney(duty)} руб.`);
+  } else if (type === "bankruptcy") {
+    duty = payer === "org" ? 100000 : 10000;
+    explanation.push(`Заявление о признании должника банкротом (пп. 8 п. 1 ст. 333.21 НК РФ): ${formatMoney(duty)} руб. (При подаче заявления самим должником пошлина не уплачивается — пп. 5 п. 1 ст. 333.37 НК РФ).`);
+  } else if (type === "interim") {
+    duty = 30000;
+    explanation.push(`Заявление об обеспечении иска, замене или отмене обеспечительных мер (пп. 13 п. 1 ст. 333.21 НК РФ): 30 000,00 руб.`);
+  } else if (type === "arbitral") {
+    duty = 30000;
+    explanation.push(`Выдача исполнительного листа на принудительное исполнение решения третейского суда или признание и приведение в исполнение решения иностранного суда (пп. 11, 12 п. 1 ст. 333.21 НК РФ): 30 000,00 руб.`);
+  } else if (type === "appeal") {
+    duty = payer === "org" ? 30000 : 10000;
+    explanation.push(`Апелляционная жалоба (пп. 19 п. 1 ст. 333.21 НК РФ): ${formatMoney(duty)} руб.`);
+  } else if (type === "cassation") {
+    duty = payer === "org" ? 50000 : 20000;
+    explanation.push(`Кассационная жалоба (пп. 20 п. 1 ст. 333.21 НК РФ): ${formatMoney(duty)} руб.`);
+  } else if (type === "supreme") {
+    duty = payer === "org" ? 80000 : 30000;
+    explanation.push(`Надзорная жалоба или кассационная жалоба в Верховный Суд РФ (пп. 21 п. 1 ст. 333.21 НК РФ): ${formatMoney(duty)} руб.`);
+  }
+
+  if ((type === "property" || type === "contract" || type === "non_prop") && isBankruptcySep) {
+    duty = Math.round(duty * 0.5);
+    explanation.push(`Применён коэффициент 50% для обособленного спора в деле о банкротстве (пп. 10 п. 1 ст. 333.21 НК РФ).`);
+  }
+
+  const payable = Math.max(0, duty - paidBefore);
+  if (paidBefore > 0) {
+    explanation.push(`С учётом зачёта ранее уплаченной госпошлины (${formatMoney(paidBefore)} руб.) к доплате подлежит ${formatMoney(payable)} руб.`);
+  }
+
+  document.getElementById("resBaseDuty").textContent = `${formatMoney(duty)} ₽`;
+  document.getElementById("resPayableDuty").textContent = `${formatMoney(payable)} ₽`;
+  document.getElementById("resExplanation").innerHTML = explanation.join("<br>");
+
+  lastReportText = [
+    `РАСЧЁТ ГОСУДАРСТВЕННОЙ ПОШЛИНЫ В АРБИТРАЖНЫЙ СУД (СТ. 333.21 НК РФ)`,
+    ...explanation,
+    `Итого размер госпошлины: ${formatMoney(duty)} руб.`,
+    paidBefore > 0 ? `К доплате с учётом зачёта: ${formatMoney(payable)} руб.` : ""
+  ].filter(Boolean).join("\n");
+}
+
+function copyReport() {
+  navigator.clipboard.writeText(lastReportText).then(() => {
+    const btn = document.getElementById("copyBtn");
+    const orig = btn.textContent;
+    btn.textContent = "Скопировано!";
+    setTimeout(() => (btn.textContent = orig), 2000);
+  });
+}
+
+toggleClaimFields();
+calculateDuty();
+</script>
+</body>
+</html>
