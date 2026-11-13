@@ -32,11 +32,11 @@
     <div class="form-grid">
       <div class="field">
         <label for="debt">Сумма задолженности, ₽</label>
-        <input type="number" id="debt" step="0.01" min="0" value="300000">
+        <input type="number" id="debt" step="0.01" min="0" placeholder="0">
       </div>
       <div class="field">
         <label for="rate">Ставка по договору</label>
-        <input type="number" id="rate" step="0.001" min="0" value="0.1">
+        <input type="number" id="rate" step="0.001" min="0" placeholder="0">
       </div>
       <div class="field">
         <label for="rateUnit">Порядок начисления</label>
@@ -51,7 +51,7 @@
     <div class="form-grid">
       <div class="field">
         <label for="startDate">Начало периода просрочки</label>
-        <input type="date" id="startDate" value="2026-03-01">
+        <input type="date" id="startDate">
       </div>
       <div class="field">
         <label for="endDate">Конец периода просрочки</label>
@@ -73,7 +73,7 @@
 
     <div style="display:flex; gap:12px; flex-wrap:wrap;">
       <button type="button" class="btn btn-primary" onclick="calculatePenalty()">Рассчитать неустойку</button>
-      <button type="button" class="btn btn-secondary" id="copyBtn" onclick="copyReport()" style="display:none;">Скопировать расчёт для иска</button>
+      <button type="button" class="btn btn-secondary" id="copyBtn" onclick="copyReport()" style="display:none;">Скопировать таблицу для иска</button>
     </div>
 
     <div id="resultBlock" style="display:none;">
@@ -119,14 +119,20 @@
 
 <script src="rates.js"></script>
 <script>
-document.getElementById("endDate").value = todayISO();
 document.getElementById("year").textContent = new Date().getFullYear();
 document.getElementById("todayBtn").onclick = () => {
   document.getElementById("endDate").value = todayISO();
-  calculatePenalty();
+  if (
+    document.getElementById("startDate").value &&
+    document.getElementById("debt").value &&
+    document.getElementById("rate").value
+  ) {
+    calculatePenalty();
+  }
 };
 
 let lastReportText = "";
+let lastReportHtml = "";
 
 function addEventRow(type) {
   const container = document.getElementById("eventsList");
@@ -137,8 +143,8 @@ function addEventRow(type) {
       <option value="payment" ${type === "payment" ? "selected" : ""}>Частичная оплата</option>
       <option value="increase" ${type === "increase" ? "selected" : ""}>Увеличение долга</option>
     </select>
-    <input type="date" class="ev-date" value="${todayISO()}">
-    <input type="number" class="ev-amount" step="0.01" min="0" placeholder="Сумма, ₽">
+    <input type="date" class="ev-date">
+    <input type="number" class="ev-amount" step="0.01" min="0" placeholder="0">
     <button type="button" class="btn-icon-del" title="Удалить" onclick="this.parentElement.remove()">×</button>
   `;
   container.appendChild(row);
@@ -151,7 +157,22 @@ function calculatePenalty() {
   const startStr = document.getElementById("startDate").value;
   const endStr = document.getElementById("endDate").value;
 
-  if (!startStr || !endStr || startStr > endStr) {
+  if (!initialDebt || initialDebt <= 0) {
+    alert("Укажите сумму задолженности.");
+    return;
+  }
+
+  if (!rate || rate <= 0) {
+    alert("Укажите размер ставки неустойки по договору.");
+    return;
+  }
+
+  if (!startStr || !endStr) {
+    alert("Укажите даты начала и окончания периода просрочки.");
+    return;
+  }
+
+  if (startStr > endStr) {
     alert("Проверьте даты: дата начала просрочки не может быть позже даты окончания.");
     return;
   }
@@ -190,8 +211,10 @@ function calculatePenalty() {
   let totalPenalty = 0;
   let totalDays = 0;
   let reportLines = [];
+  let htmlRows = [];
 
   const unitLabel = unit === "day" ? "% в день" : unit === "month" ? "% в месяц" : "% годовых";
+  const rateDisplay = String(rate).replace(".", ",");
 
   for (let i = 0; i < sortedPoints.length - 1; i++) {
     const segStart = sortedPoints[i];
@@ -216,13 +239,13 @@ function calculatePenalty() {
 
     if (unit === "day") {
       penalty = (currentDebt * days * rate) / 100;
-      formulaStr = `${formatMoney(currentDebt)} × ${days} дн. × ${rate}%`;
+      formulaStr = `${formatMoney(currentDebt)} × ${days} дн. × ${rateDisplay}%`;
     } else if (unit === "month") {
       penalty = (currentDebt * days * rate) / (30 * 100);
-      formulaStr = `${formatMoney(currentDebt)} × ${days} / 30 × ${rate}%`;
+      formulaStr = `${formatMoney(currentDebt)} × ${days} / 30 × ${rateDisplay}%`;
     } else {
       penalty = (currentDebt * days * rate) / (diy * 100);
-      formulaStr = `${formatMoney(currentDebt)} × ${days} / ${diy} × ${rate}%`;
+      formulaStr = `${formatMoney(currentDebt)} × ${days} / ${diy} × ${rateDisplay}%`;
     }
 
     totalPenalty += penalty;
@@ -239,8 +262,18 @@ function calculatePenalty() {
     tbody.appendChild(tr);
 
     reportLines.push(
-      `• с ${formatRU(segStart)} по ${formatRU(segEnd)} (${days} дн.): долг ${formatMoney(currentDebt)} руб., ставка ${rate} ${unitLabel} — ${formatMoney(penalty)} руб.`
+      `${formatMoney(currentDebt)}\t${formatRU(segStart)} – ${formatRU(segEnd)}\t${days}\t${formulaStr}\t${formatMoney(penalty)}`
     );
+
+    htmlRows.push(`
+      <tr>
+        <td style="border:1px solid #000; padding:4px 5px; text-align:right; word-wrap:break-word;">${formatMoney(currentDebt)}</td>
+        <td style="border:1px solid #000; padding:4px 5px; text-align:center; white-space:nowrap;">${formatRU(segStart)} – ${formatRU(segEnd)}</td>
+        <td style="border:1px solid #000; padding:4px 5px; text-align:right;">${days}</td>
+        <td style="border:1px solid #000; padding:4px 5px; word-wrap:break-word;">${formulaStr}</td>
+        <td style="border:1px solid #000; padding:4px 5px; text-align:right; word-wrap:break-word;"><strong>${formatMoney(penalty)}</strong></td>
+      </tr>
+    `);
   }
 
   let finalDebt = initialDebt;
@@ -261,27 +294,82 @@ function calculatePenalty() {
 
   lastReportText = [
     `РАСЧЁТ ДОГОВОРНОЙ НЕУСТОЙКИ`,
-    `Ставка по договору: ${rate} ${unitLabel}`,
+    `Ставка по договору: ${rateDisplay} ${unitLabel}`,
     `Период просрочки: с ${formatRU(startStr)} по ${formatRU(endStr)} (${totalDays} дн.)`,
     ``,
+    `Задолженность, ₽\tПериод просрочки\tДней\tФормула расчёта\tНеустойка, ₽`,
     ...reportLines,
     ``,
     `Итого сумма неустойки: ${formatMoney(totalPenalty)} руб.`,
     `Остаток основного долга: ${formatMoney(finalDebt)} руб.`,
     `Общая сумма задолженности: ${formatMoney(finalDebt + totalPenalty)} руб.`
   ].join("\n");
+
+  lastReportHtml = `
+    <div style="font-family: 'Times New Roman', serif; font-size: 11pt; color: #000; width: 16.5cm;">
+      <p style="font-weight: bold; margin-bottom: 4px;">РАСЧЁТ ДОГОВОРНОЙ НЕУСТОЙКИ</p>
+      <p style="margin-top: 0; margin-bottom: 8px;">Ставка по договору: ${rateDisplay} ${unitLabel}. Период просрочки: с ${formatRU(startStr)} по ${formatRU(endStr)} (${totalDays} дн.)</p>
+      <table style="border-collapse: collapse; width: 16.5cm; table-layout: fixed; font-size: 9.5pt;">
+        <colgroup>
+          <col style="width: 18%;">
+          <col style="width: 24%;">
+          <col style="width: 9%;">
+          <col style="width: 31%;">
+          <col style="width: 18%;">
+        </colgroup>
+        <thead>
+          <tr style="background-color: #f2f2f2;">
+            <th style="border:1px solid #000; padding:4px 5px;">Задолженность, ₽</th>
+            <th style="border:1px solid #000; padding:4px 5px;">Период просрочки</th>
+            <th style="border:1px solid #000; padding:4px 5px;">Дней</th>
+            <th style="border:1px solid #000; padding:4px 5px;">Формула расчёта</th>
+            <th style="border:1px solid #000; padding:4px 5px;">Неустойка, ₽</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${htmlRows.join("")}
+          <tr>
+            <td colspan="2" style="border:1px solid #000; padding:4px 5px; font-weight:bold;">Итого:</td>
+            <td style="border:1px solid #000; padding:4px 5px; text-align:right; font-weight:bold;">${totalDays}</td>
+            <td style="border:1px solid #000; padding:4px 5px;"></td>
+            <td style="border:1px solid #000; padding:4px 5px; text-align:right; font-weight:bold;">${formatMoney(totalPenalty)}</td>
+          </tr>
+        </tbody>
+      </table>
+      <p style="margin-top: 8px; font-size: 11pt;">
+        <strong>Итого сумма неустойки:</strong> ${formatMoney(totalPenalty)} руб.<br>
+        <strong>Остаток основного долга:</strong> ${formatMoney(finalDebt)} руб.<br>
+        <strong>Общая сумма задолженности:</strong> ${formatMoney(finalDebt + totalPenalty)} руб.
+      </p>
+    </div>
+  `;
 }
 
-function copyReport() {
-  navigator.clipboard.writeText(lastReportText).then(() => {
-    const btn = document.getElementById("copyBtn");
-    const orig = btn.textContent;
+async function copyReport() {
+  const btn = document.getElementById("copyBtn");
+  const orig = btn.textContent;
+
+  try {
+    if (window.ClipboardItem) {
+      const htmlBlob = new Blob([lastReportHtml], { type: "text/html" });
+      const textBlob = new Blob([lastReportText], { type: "text/plain" });
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          "text/html": htmlBlob,
+          "text/plain": textBlob
+        })
+      ]);
+    } else {
+      await navigator.clipboard.writeText(lastReportText);
+    }
+    btn.textContent = "Таблица скопирована!";
+    setTimeout(() => (btn.textContent = orig), 2000);
+  } catch (e) {
+    await navigator.clipboard.writeText(lastReportText);
     btn.textContent = "Скопировано!";
     setTimeout(() => (btn.textContent = orig), 2000);
-  });
+  }
 }
-
-calculatePenalty();
 </script>
 </body>
 </html>
