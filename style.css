@@ -508,6 +508,4 @@ footer {
 .card section p,
 .card section li {
   text-align: justify;
-  -webkit-hyphens: auto;
-  hyphens: auto;
 }
