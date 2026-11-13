@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Калькулятор договорной неустойки — Михаил Рачков</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="topbar">
+  <nav class="nav-links">
+    <a href="index.html">Главная</a>
+    <a href="395.html">Ст. 395 ГК РФ</a>
+    <a href="penalty.html" class="active">Неустойка</a>
+    <a href="duty.html">Госпошлина АС</a>
+  </nav>
+</div>
+
+<div class="container">
+  <div class="card">
+    <div class="calc-header">
+      <h1>Калькулятор договорной неустойки</h1>
+      <div class="subtitle">Расчёт пеней и процентов по ставке договора (% в день, % в месяц или % годовых)</div>
+    </div>
+
+    <div class="form-grid">
+      <div class="field">
+        <label for="debt">Сумма задолженности, ₽</label>
+        <input type="number" id="debt" step="0.01" min="0" value="300000">
+      </div>
+      <div class="field">
+        <label for="rate">Ставка по договору</label>
+        <input type="number" id="rate" step="0.001" min="0" value="0.1">
+      </div>
+      <div class="field">
+        <label for="rateUnit">Порядок начисления</label>
+        <select id="rateUnit">
+          <option value="day" selected>% в день</option>
+          <option value="year">% годовых (365/366 дн.)</option>
+          <option value="month">% в месяц (1/30 в день)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-grid">
+      <div class="field">
+        <label for="startDate">Начало периода просрочки</label>
+        <input type="date" id="startDate" value="2026-03-01">
+      </div>
+      <div class="field">
+        <label for="endDate">Конец периода просрочки</label>
+        <div class="input-with-btn">
+          <input type="date" id="endDate">
+          <button type="button" class="btn btn-secondary btn-sm" id="todayBtn">Сегодня</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="events-box">
+      <h3>Частичная оплата и увеличение долга</h3>
+      <div id="eventsList"></div>
+      <div class="events-actions">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="addEventRow('payment')">+ Частичная оплата</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="addEventRow('increase')">+ Увеличение долга</button>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:12px; flex-wrap:wrap;">
+      <button type="button" class="btn btn-primary" onclick="calculatePenalty()">Рассчитать неустойку</button>
+      <button type="button" class="btn btn-secondary" id="copyBtn" onclick="copyReport()" style="display:none;">Скопировать расчёт для иска</button>
+    </div>
+
+    <div id="resultBlock" style="display:none;">
+      <div class="result-card">
+        <div class="result-grid">
+          <div class="result-item">
+            <span>Остаток основного долга</span>
+            <strong id="resRemainDebt">0,00 ₽</strong>
+          </div>
+          <div class="result-item">
+            <span>Всего дней просрочки</span>
+            <strong id="resTotalDays">0</strong>
+          </div>
+          <div class="result-item highlight">
+            <span>Сумма неустойки</span>
+            <strong id="resTotalPenalty">0,00 ₽</strong>
+          </div>
+        </div>
+        <div style="font-size:14px; color:var(--sub);">
+          Общая сумма взыскания (долг + неустойка): <strong id="resGrandTotal" style="color:var(--text);">0,00 ₽</strong>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Задолженность, ₽</th>
+              <th>Период просрочки</th>
+              <th class="num">Дней</th>
+              <th>Формула расчёта</th>
+              <th class="num">Неустойка, ₽</th>
+            </tr>
+          </thead>
+          <tbody id="breakdownBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <footer>© <span id="year"></span> rachkov.me</footer>
+  </div>
+</div>
+
+<script src="rates.js"></script>
+<script>
+document.getElementById("endDate").value = todayISO();
+document.getElementById("year").textContent = new Date().getFullYear();
+document.getElementById("todayBtn").onclick = () => {
+  document.getElementById("endDate").value = todayISO();
+  calculatePenalty();
+};
+
+let lastReportText = "";
+
+function addEventRow(type) {
+  const container = document.getElementById("eventsList");
+  const row = document.createElement("div");
+  row.className = "event-row";
+  row.innerHTML = `
+    <select class="ev-type">
+      <option value="payment" ${type === "payment" ? "selected" : ""}>Частичная оплата</option>
+      <option value="increase" ${type === "increase" ? "selected" : ""}>Увеличение долга</option>
+    </select>
+    <input type="date" class="ev-date" value="${todayISO()}">
+    <input type="number" class="ev-amount" step="0.01" min="0" placeholder="Сумма, ₽">
+    <button type="button" class="btn-icon-del" title="Удалить" onclick="this.parentElement.remove()">×</button>
+  `;
+  container.appendChild(row);
+}
+
+function calculatePenalty() {
+  const initialDebt = parseFloat(document.getElementById("debt").value) || 0;
+  const rate = parseFloat(document.getElementById("rate").value) || 0;
+  const unit = document.getElementById("rateUnit").value;
+  const startStr = document.getElementById("startDate").value;
+  const endStr = document.getElementById("endDate").value;
+
+  if (!startStr || !endStr || startStr > endStr) {
+    alert("Проверьте даты: дата начала просрочки не может быть позже даты окончания.");
+    return;
+  }
+
+  const events = [];
+  document.querySelectorAll(".event-row").forEach(row => {
+    const type = row.querySelector(".ev-type").value;
+    const date = row.querySelector(".ev-date").value;
+    const amount = parseFloat(row.querySelector(".ev-amount").value) || 0;
+    if (date && amount > 0) {
+      events.push({ type, date, amount });
+    }
+  });
+
+  const boundaries = new Set([startStr, addDays(endStr, 1)]);
+
+  if (unit === "year") {
+    const startYear = Number(startStr.slice(0, 4));
+    const endYear = Number(endStr.slice(0, 4));
+    for (let y = startYear + 1; y <= endYear; y++) {
+      boundaries.add(`${y}-01-01`);
+    }
+  }
+
+  for (const ev of events) {
+    const effDate = ev.type === "payment" ? addDays(ev.date, 1) : ev.date;
+    if (effDate > startStr && effDate <= endStr) {
+      boundaries.add(effDate);
+    }
+  }
+
+  const sortedPoints = Array.from(boundaries).sort();
+  const tbody = document.getElementById("breakdownBody");
+  tbody.innerHTML = "";
+
+  let totalPenalty = 0;
+  let totalDays = 0;
+  let reportLines = [];
+
+  const unitLabel = unit === "day" ? "% в день" : unit === "month" ? "% в месяц" : "% годовых";
+
+  for (let i = 0; i < sortedPoints.length - 1; i++) {
+    const segStart = sortedPoints[i];
+    const segEnd = addDays(sortedPoints[i + 1], -1);
+    if (segStart > segEnd) continue;
+
+    let currentDebt = initialDebt;
+    for (const ev of events) {
+      const effDate = ev.type === "payment" ? addDays(ev.date, 1) : ev.date;
+      if (effDate <= segStart) {
+        if (ev.type === "payment") currentDebt = Math.max(0, currentDebt - ev.amount);
+        if (ev.type === "increase") currentDebt += ev.amount;
+      }
+    }
+
+    const days = diffDaysInclusive(segStart, segEnd);
+    const year = Number(segStart.slice(0, 4));
+    const diy = daysInYear(year);
+
+    let penalty = 0;
+    let formulaStr = "";
+
+    if (unit === "day") {
+      penalty = (currentDebt * days * rate) / 100;
+      formulaStr = `${formatMoney(currentDebt)} × ${days} дн. × ${rate}%`;
+    } else if (unit === "month") {
+      penalty = (currentDebt * days * rate) / (30 * 100);
+      formulaStr = `${formatMoney(currentDebt)} × ${days} / 30 × ${rate}%`;
+    } else {
+      penalty = (currentDebt * days * rate) / (diy * 100);
+      formulaStr = `${formatMoney(currentDebt)} × ${days} / ${diy} × ${rate}%`;
+    }
+
+    totalPenalty += penalty;
+    totalDays += days;
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="num">${formatMoney(currentDebt)}</td>
+      <td>${formatRU(segStart)} – ${formatRU(segEnd)}</td>
+      <td class="num">${days}</td>
+      <td>${formulaStr}</td>
+      <td class="num"><strong>${formatMoney(penalty)}</strong></td>
+    `;
+    tbody.appendChild(tr);
+
+    reportLines.push(
+      `• с ${formatRU(segStart)} по ${formatRU(segEnd)} (${days} дн.): долг ${formatMoney(currentDebt)} руб., ставка ${rate} ${unitLabel} — ${formatMoney(penalty)} руб.`
+    );
+  }
+
+  let finalDebt = initialDebt;
+  for (const ev of events) {
+    if (ev.date <= endStr) {
+      if (ev.type === "payment") finalDebt = Math.max(0, finalDebt - ev.amount);
+      if (ev.type === "increase") finalDebt += ev.amount;
+    }
+  }
+
+  document.getElementById("resRemainDebt").textContent = `${formatMoney(finalDebt)} ₽`;
+  document.getElementById("resTotalDays").textContent = `${totalDays} дн.`;
+  document.getElementById("resTotalPenalty").textContent = `${formatMoney(totalPenalty)} ₽`;
+  document.getElementById("resGrandTotal").textContent = `${formatMoney(finalDebt + totalPenalty)} ₽`;
+
+  document.getElementById("resultBlock").style.display = "block";
+  document.getElementById("copyBtn").style.display = "inline-flex";
+
+  lastReportText = [
+    `РАСЧЁТ ДОГОВОРНОЙ НЕУСТОЙКИ`,
+    `Ставка по договору: ${rate} ${unitLabel}`,
+    `Период просрочки: с ${formatRU(startStr)} по ${formatRU(endStr)} (${totalDays} дн.)`,
+    ``,
+    ...reportLines,
+    ``,
+    `Итого сумма неустойки: ${formatMoney(totalPenalty)} руб.`,
+    `Остаток основного долга: ${formatMoney(finalDebt)} руб.`,
+    `Общая сумма задолженности: ${formatMoney(finalDebt + totalPenalty)} руб.`
+  ].join("\n");
+}
+
+function copyReport() {
+  navigator.clipboard.writeText(lastReportText).then(() => {
+    const btn = document.getElementById("copyBtn");
+    const orig = btn.textContent;
+    btn.textContent = "Скопировано!";
+    setTimeout(() => (btn.textContent = orig), 2000);
+  });
+}
+
+calculatePenalty();
+</script>
+</body>
+</html>
