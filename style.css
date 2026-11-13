@@ -494,13 +494,13 @@ footer {
 
 /* Ссылки столбиком только в портретном (узком) режиме */
 @media (max-width: 640px) {
-  .nav-row:nth-child(2) {
+  .nav-row:not(:first-child) {
     flex-direction: column !important;
     align-items: flex-start !important;
     gap: 8px !important;
   }
 
-  .nav-row:nth-child(2) a {
+  .nav-row:not(:first-child) a {
     padding-left: 10px !important;
   }
 }
