@@ -487,7 +487,7 @@ footer {
   .lang,
   .language-switch {
     position: absolute !important;
-    top: 0 !important;
+    top: 24px !important;
     right: 0 !important;
   }
 }
