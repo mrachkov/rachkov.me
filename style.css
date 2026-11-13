@@ -438,3 +438,24 @@ footer {
     font-size: 30px;
   }
 }
+/* Двухстрочное меню */
+.nav-grouped {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.nav-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+
+.nav-label {
+  font-size: 0.85em;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.6;
+  user-select: none;
+}
