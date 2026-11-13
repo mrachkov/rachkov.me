@@ -1,0 +1,440 @@
+:root {
+  --text: #1d1d1f;
+  --sub: #6e6e73;
+  --accent: #0a84ff;
+  --accent-hover: #0071e3;
+  --bg: #f5f5f7;
+  --card: #ffffff;
+  --border: #d2d2d7;
+  --row-alt: #fafafa;
+  --danger: #ff3b30;
+  --success: #34c759;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Верхняя навигация */
+.topbar {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px 24px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(12px);
+  padding: 5px;
+  border-radius: 14px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+}
+
+.nav-links a {
+  text-decoration: none;
+  color: var(--sub);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 6px 13px;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.nav-links a:hover {
+  color: var(--text);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.nav-links a.active {
+  background: var(--card);
+  color: var(--text);
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.lang {
+  font-size: 14px;
+  color: var(--sub);
+  margin-left: auto;
+}
+
+.lang button {
+  background: none;
+  border: none;
+  color: var(--sub);
+  cursor: pointer;
+  padding: 4px 6px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.lang button.active {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* Основной контейнер и карточка */
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px 24px 80px;
+}
+
+.card {
+  background: var(--card);
+  border-radius: 28px;
+  padding: 52px 48px;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.08);
+}
+
+header {
+  text-align: center;
+  margin-bottom: 50px;
+}
+
+.avatar {
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 24px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+h1 {
+  font-weight: 600;
+  font-size: 38px;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.subtitle {
+  margin-top: 8px;
+  font-size: 18px;
+  color: var(--sub);
+}
+
+.email {
+  display: inline-block;
+  margin-top: 10px;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+section {
+  margin-top: 48px;
+}
+
+h2 {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  letter-spacing: -0.01em;
+}
+
+h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--text);
+}
+
+p {
+  margin-bottom: 14px;
+  color: var(--sub);
+}
+
+ul {
+  padding-left: 18px;
+  color: var(--sub);
+}
+
+li {
+  margin-bottom: 8px;
+  color: var(--sub);
+}
+
+[data-lang] {
+  display: none;
+}
+
+/* Формы и калькуляторы */
+.calc-header {
+  text-align: left;
+  margin-bottom: 32px;
+}
+
+.calc-header h1 {
+  font-size: 30px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--sub);
+}
+
+input[type="text"],
+input[type="number"],
+input[type="date"],
+select {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--text);
+  background: #fff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+input:focus,
+select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.15);
+}
+
+.input-with-btn {
+  display: flex;
+  gap: 8px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 11px 18px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+}
+
+.btn-secondary {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.btn-secondary:hover {
+  background: #e8e8ed;
+}
+
+.btn-sm {
+  padding: 8px 12px;
+  font-size: 13px;
+  border-radius: 10px;
+}
+
+.btn-icon-del {
+  background: none;
+  border: none;
+  color: var(--sub);
+  cursor: pointer;
+  font-size: 18px;
+  padding: 6px 10px;
+  border-radius: 8px;
+}
+
+.btn-icon-del:hover {
+  color: var(--danger);
+  background: rgba(255, 59, 48, 0.08);
+}
+
+/* Блок движений долга */
+.events-box {
+  background: var(--bg);
+  border-radius: 18px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.events-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.event-row {
+  display: grid;
+  grid-template-columns: 165px 150px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+  background: #fff;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.checkbox-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* Блок итогов */
+.result-card {
+  background: linear-gradient(180deg, #f8faff 0%, #f2f6ff 100%);
+  border: 1px solid rgba(10, 132, 255, 0.2);
+  border-radius: 20px;
+  padding: 24px;
+  margin-top: 28px;
+}
+
+.result-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.result-item span {
+  display: block;
+  font-size: 13px;
+  color: var(--sub);
+  margin-bottom: 4px;
+}
+
+.result-item strong {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.result-item.highlight strong {
+  color: var(--accent);
+  font-size: 26px;
+}
+
+/* Таблица расчёта */
+.table-wrap {
+  overflow-x: auto;
+  margin-top: 24px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  text-align: left;
+}
+
+th {
+  background: var(--bg);
+  color: var(--sub);
+  font-weight: 600;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+td {
+  padding: 11px 14px;
+  border-bottom: 1px solid #ececef;
+  color: var(--text);
+  vertical-align: top;
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+tr:nth-child(even) td {
+  background: var(--row-alt);
+}
+
+.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.note-box {
+  margin-top: 16px;
+  padding: 14px 16px;
+  background: var(--bg);
+  border-radius: 12px;
+  font-size: 13.5px;
+  color: var(--sub);
+}
+
+footer {
+  margin-top: 60px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--sub);
+}
+
+@media (max-width: 680px) {
+  .card {
+    padding: 32px 20px;
+    border-radius: 22px;
+  }
+  .event-row {
+    grid-template-columns: 1fr;
+  }
+  h1 {
+    font-size: 30px;
+  }
+}
