@@ -477,25 +477,30 @@ footer {
   opacity: 0.45;
   user-select: none;
 }
-/* Мобильный портретный режим */
-@media (max-width: 640px) and (orientation: portrait) {
+/* Выравнивание RU | EN наверху на всех экранах до 960px */
+@media (max-width: 960px) {
   .topbar {
-    position: relative;
+    position: relative !important;
   }
 
-  .lang-switch {
-    position: absolute;
-    top: 0;
-    right: 0;
+  .lang-switch,
+  .lang,
+  .language-switch {
+    position: absolute !important;
+    top: 0 !important;
+    right: 0 !important;
   }
+}
 
+/* Ссылки столбиком только в портретном (узком) режиме */
+@media (max-width: 640px) {
   .nav-row:nth-child(2) {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
   }
 
   .nav-row:nth-child(2) a {
-    padding-left: 10px;
+    padding-left: 10px !important;
   }
 }
